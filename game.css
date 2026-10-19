@@ -1,0 +1,86 @@
+/* Skate — page colours (light / dark follows the system) and the game stage. */
+
+:root {
+  --bg: #F9F9F7;
+  --fg: #0A0A0A;
+  --muted: #6E6E6B;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0A0A0A;
+    --fg: #F5F5F2;
+    --muted: #9A9A96;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  overflow: hidden;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.game { position: fixed; inset: 0; }
+
+.hint {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* ---------- Game ---------- */
+.gm {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  touch-action: none; /* taps jump; the page itself never scrolls */
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.gm:focus-visible { outline: none; }
+.gm__cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.gm__btn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--fg);
+  color: var(--bg);
+  font: 500 14px/1 var(--font-body);
+  cursor: pointer;
+}
+.gm__btn[hidden] { display: none; }
+.gm__btn:hover { opacity: 0.86; }
+.gm__btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+.gm__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
