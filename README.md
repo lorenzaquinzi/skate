@@ -14,7 +14,7 @@ Pure line art drawn on a canvas in the page colours, so it follows light / dark 
 | Grind a bench or barrier (+15) | land on top of it from a jump | same |
 | Ollie off the bench / barrier | jump while grinding | tap |
 
-Any key (`Space`, `↑`, `↓`, `W`, `S`, `Enter`) or a click / tap anywhere starts a run, and starts a new one after Game over. The "Quinzi" title (and "Game over" after a crash) sits under the street and disappears while you play.
+Any key (`Space`, `↑`, `↓`, `W`, `S`, `Enter`) or a click / tap anywhere starts a run, and starts a new one after Game over. The Start button sits at the bottom.
 
 The best score is kept in `localStorage`.
 
