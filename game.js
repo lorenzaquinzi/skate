@@ -73,13 +73,13 @@
   var BEST_KEY = "skate-best";
   var JUMP = 12.2, GRAV = 0.75, FALL = 2.4;
 
-  var stage = el("div", "gm", '<canvas class="gm__cv"></canvas><button type="button" class="gm__btn">Start</button><span class="gm__live" role="status" aria-live="polite"></span>');
-  stage.tabIndex = -1; // focused by the Start button, not a tab stop of its own
+  var stage = el("div", "gm", '<canvas class="gm__cv"></canvas><div class="gm__title" aria-hidden="true">Quinzi</div><span class="gm__live" role="status" aria-live="polite"></span>');
+  stage.tabIndex = -1; // focusable by script only, not a tab stop
   stage.setAttribute("role", "group");
   stage.setAttribute("aria-roledescription", "game");
-  stage.setAttribute("aria-label", "Skateboard game. Use the Start button, then press space, the up arrow, or tap to jump.");
+  stage.setAttribute("aria-label", "Skateboard game. Press any key or tap to start, then space, the up arrow, or a tap to jump.");
   hero.appendChild(stage);
-  var cv = stage.querySelector("canvas"), g = cv.getContext("2d"), live = stage.querySelector(".gm__live"), btn = stage.querySelector(".gm__btn");
+  var cv = stage.querySelector("canvas"), g = cv.getContext("2d"), live = stage.querySelector(".gm__live"), title = stage.querySelector(".gm__title");
 
   /* ---- state ---- */
   var w = 0, h = 0, dpr = 1, gy = 0, sx = 90;      // canvas size, ground line, skater x
@@ -231,21 +231,17 @@
     g.fillStyle = col(0.9); g.fillText(pad(score), right, 72);
     g.fillStyle = col(0.45); g.fillText("HI " + pad(best), right - 56, 72);
     g.textAlign = "center";
-    if (state === "dead") {
-      g.font = "600 22px Inter, system-ui, sans-serif"; g.fillStyle = col(0.95);
-      g.fillText("Game over", w / 2, btnY() - 18);
-    }
     if (pop > 0) {
       g.font = "600 12px Inter, system-ui, sans-serif"; g.textAlign = "left"; g.fillStyle = col(Math.min(1, pop / 20) * 0.9);
       g.fillText(popTxt, sx + 34, gy - 92 - (40 - pop) * 0.5);
     }
   }
 
-  function btnY() { return clamp(Math.max(gy + 40, h - 110), 0, h - 70); } // under the street, near the bottom
-  function syncBtn() {
-    btn.hidden = state === "run";
-    btn.textContent = state === "dead" ? "Play again" : "Start";
-    btn.style.top = btnY() + "px";
+  function titleY() { return (gy + h - 44) / 2; } // centred in the space under the street
+  function syncTitle() { // "Quinzi" before the first run, "Game over" after a crash, gone while playing
+    title.hidden = state === "run";
+    title.textContent = state === "dead" ? "Game over" : "Quinzi";
+    title.style.top = titleY() + "px";
   }
 
   function render() {
@@ -261,13 +257,13 @@
   /* ---- game logic ---- */
   function jump() { var grinding = !!grind; grind = null; vy = JUMP; if (!grinding) sy = 0.01; flipUsed = false; flipT = 0; flipDone = false; buf = 0; }
   function start() {
-    state = "run"; syncBtn(); speed = reduceMotion ? 5 : 6.5; maxSpeed = reduceMotion ? 7 : 13.5;
+    state = "run"; syncTitle(); speed = reduceMotion ? 5 : 6.5; maxSpeed = reduceMotion ? 7 : 13.5;
     score = 0; obs = []; grind = null; sy = 0; vy = 0; flipT = 0; flipUsed = false; flipDone = false; buf = 0; pop = 0;
     live.textContent = "Go";
     setHint(finePointer ? "Space / ↑ jump · hold for height · again in the air = kickflip · ↓ drop" : "Tap to jump · tap in the air for a kickflip");
   }
   function die() {
-    state = "dead"; deadAt = performance.now(); held = false; syncBtn();
+    state = "dead"; deadAt = performance.now(); held = false; syncTitle();
     if (Math.floor(score) > best) {
       best = Math.floor(score);
       try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) { /* ignore */ }
@@ -288,10 +284,6 @@
     if (state === "dead" && performance.now() - deadAt < 400) return;
     start();
     lp.wake();
-  }
-  function startFromButton() {
-    begin();
-    stage.focus({ preventScroll: true }); // so Space / ↑ work straight away
   }
   function release() {
     held = false;
@@ -383,17 +375,16 @@
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
     sx = clamp(w * 0.16, 70, 200);
     gy = Math.max(200, Math.round(h * 0.62));
-    syncBtn();
+    syncTitle();
     render();
   }
 
   /* ---- input ---- */
   function typing(t) { return t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable); }
   var UP = { Space: 1, ArrowUp: 1, KeyW: 1 }, DOWN = { ArrowDown: 1, KeyS: 1 };
-  function onButton(t) { return t && t.closest && t.closest("button"); }
   listen(off, window, "keydown", function (e) {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
-    if (onButton(e.target)) return; // Space / Enter on the focused button is its own click
+    if (e.target && e.target.closest && e.target.closest("button, a")) return;
     if (UP[e.code] || e.code === "Enter") { e.preventDefault(); if (!e.repeat) press(); }
     else if (DOWN[e.code]) {
       e.preventDefault();
@@ -405,10 +396,9 @@
     if (UP[e.code] || e.code === "Enter") release();
     else if (DOWN[e.code]) duck = false;
   });
-  listen(off, btn, "click", startFromButton);
   listen(off, stage, "pointerdown", function (e) {
-    if (onButton(e.target) || (e.pointerType === "mouse" && e.button !== 0)) return; // the button handles its own click
-    press(); // anywhere else: starts a run when idle / dead, jumps when running
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    press(); // starts a run when idle / dead, jumps when running
   });
   listen(off, stage, "pointerup", release);
   listen(off, stage, "pointercancel", release);

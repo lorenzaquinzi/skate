@@ -61,21 +61,20 @@ body {
 }
 .gm:focus-visible { outline: none; }
 .gm__cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.gm__btn {
+/* Title / Game over: skate-mag style lettering, red, centred under the street. */
+.gm__title {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 10px 22px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--fg);
-  color: var(--bg);
-  font: 500 14px/1 var(--font-body);
-  cursor: pointer;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%) skewX(-6deg);
+  text-align: center;
+  font: 900 clamp(56px, min(17vw, 16vh), 150px)/0.9 'Passion One', Impact, 'Arial Narrow Bold', sans-serif;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: #E5262D;
+  pointer-events: none;
 }
-.gm__btn[hidden] { display: none; }
-.gm__btn:hover { opacity: 0.86; }
-.gm__btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+.gm__title[hidden] { display: none; }
 .gm__live {
   position: absolute;
   width: 1px;
