@@ -14,6 +14,8 @@ Pure line art drawn on a canvas in the page colours, so it follows light / dark 
 | Grind a bench (+15) | land on top of it from a jump | same |
 | Ollie off the bench | jump while grinding | tap |
 
+Any key (`Space`, `↑`, `↓`, `W`, `S`, `Enter`) or a click / tap anywhere starts a run, and starts a new one after Game over. The Start button sits at the bottom.
+
 The best score is kept in `localStorage`.
 
 ## Run

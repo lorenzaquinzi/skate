@@ -88,7 +88,7 @@
   var sy = 0, vy = 0, held = false, duck = false, crouch = 0;
   var flipT = 0, flipUsed = false, flipDone = false, buf = 0, pop = 0, popTxt = "";
   var grind = null;                                 // the obstacle being grinded, if any
-  var obs = [], visible = true, inside = false, deadAt = 0;
+  var obs = [], visible = true, deadAt = 0;
   try { best = parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { /* ignore */ }
 
   function col(a) { return "rgba(" + fgRGB + "," + a + ")"; }
@@ -241,7 +241,7 @@
     }
   }
 
-  function btnY() { return Math.max(130, gy * 0.5); }
+  function btnY() { return clamp(Math.max(gy + 40, h - 110), 0, h - 70); } // under the street, near the bottom
   function syncBtn() {
     btn.hidden = state === "run";
     btn.textContent = state === "dead" ? "Play again" : "Start";
@@ -273,7 +273,7 @@
       try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) { /* ignore */ }
     }
     live.textContent = "Game over. Score " + Math.floor(score) + ". Best " + best + ".";
-    setHint("Press Play again");
+    setHint(finePointer ? "Press any key or click to play again" : "Tap anywhere to play again");
   }
   function press() {
     held = true;
@@ -284,11 +284,14 @@
     else buf = 7; // pressed a hair before landing: jump as soon as we touch down
     lp.wake();
   }
-  function startFromButton() {
+  function begin() { // start a run (not straight after a crash, so a mashed key doesn't skip Game over)
     if (state === "dead" && performance.now() - deadAt < 400) return;
     start();
-    stage.focus({ preventScroll: true }); // so Space / ↑ work straight away
     lp.wake();
+  }
+  function startFromButton() {
+    begin();
+    stage.focus({ preventScroll: true }); // so Space / ↑ work straight away
   }
   function release() {
     held = false;
@@ -387,14 +390,16 @@
   /* ---- input ---- */
   function typing(t) { return t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable); }
   var UP = { Space: 1, ArrowUp: 1, KeyW: 1 }, DOWN = { ArrowDown: 1, KeyS: 1 };
+  function onButton(t) { return t && t.closest && t.closest("button"); }
   listen(off, window, "keydown", function (e) {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
-    var focused = document.activeElement === stage;
-    var onControl = e.target && e.target.closest && e.target.closest("button, a, summary");
-    if (!focused && !(inside && !onControl)) return;
-    if (!focused && state !== "run" && e.code !== "Space") return; // hovering shouldn't steal the arrow keys
-    if (UP[e.code] || (focused && e.code === "Enter")) { e.preventDefault(); if (!e.repeat) press(); }
-    else if (DOWN[e.code]) { e.preventDefault(); duck = true; }
+    if (onButton(e.target)) return; // Space / Enter on the focused button is its own click
+    if (UP[e.code] || e.code === "Enter") { e.preventDefault(); if (!e.repeat) press(); }
+    else if (DOWN[e.code]) {
+      e.preventDefault();
+      if (state !== "run") { if (!e.repeat) begin(); }
+      else duck = true;
+    }
   });
   listen(off, window, "keyup", function (e) {
     if (UP[e.code] || e.code === "Enter") release();
@@ -402,8 +407,8 @@
   });
   listen(off, btn, "click", startFromButton);
   listen(off, stage, "pointerdown", function (e) {
-    if (state !== "run" || (e.pointerType === "mouse" && e.button !== 0)) return; // the button starts a run, not the background
-    press();
+    if (onButton(e.target) || (e.pointerType === "mouse" && e.button !== 0)) return; // the button handles its own click
+    press(); // anywhere else: starts a run when idle / dead, jumps when running
   });
   listen(off, stage, "pointerup", release);
   listen(off, stage, "pointercancel", release);
@@ -423,6 +428,6 @@
   size();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { size(); });
   lp.wake();
-  setHint(finePointer ? "Press Start · then Space / ↑ to jump · ↓ drop" : "Press Start, then tap to jump");
+  setHint(finePointer ? "Press any key or click anywhere to start" : "Tap anywhere to start");
 
 })();
