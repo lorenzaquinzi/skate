@@ -11,8 +11,8 @@ Pure line art drawn on a canvas in the page colours, so it follows light / dark 
 | Jump (hold for a higher one) | `Space` / `↑` / `W` | tap |
 | Kickflip (+10) | press again in the air | tap in the air |
 | Drop faster | `↓` / `S` | — |
-| Grind a bench (+15) | land on top of it from a jump | same |
-| Ollie off the bench | jump while grinding | tap |
+| Grind a bench or barrier (+15) | land on top of it from a jump | same |
+| Ollie off the bench / barrier | jump while grinding | tap |
 
 Any key (`Space`, `↑`, `↓`, `W`, `S`, `Enter`) or a click / tap anywhere starts a run, and starts a new one after Game over. The Start button sits at the bottom.
 

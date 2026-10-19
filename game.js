@@ -144,7 +144,7 @@
       g.beginPath(); g.rect(0, -24, 76, 6); g.fill(); g.stroke();
       g.beginPath(); g.rect(2, -34, 72, 5); g.fill(); g.stroke();
     } },
-    { w: 60, h: 34, draw: function () { // road-works barrier
+    { w: 60, h: 34, grind: true, draw: function () { // road-works barrier
       body(); g.beginPath(); g.moveTo(6, 0); g.lineTo(6, -25); g.moveTo(54, 0); g.lineTo(54, -25); g.stroke();
       [-34, -19].forEach(function (y) {
         g.beginPath(); g.rect(0, y, 60, 9); g.fill(); g.stroke();
@@ -313,7 +313,7 @@
     return false;
   }
 
-  /* ---- grinding: come down on a bench from above and the trucks lock onto its top edge ---- */
+  /* ---- grinding: come down on a bench or barrier from above and the trucks lock onto its top edge ---- */
   var GRIND_LIFT = 10;                              // trucks sit this far above the skater's origin
   function updateGrind(prevSy) {
     if (grind) {
