@@ -259,7 +259,7 @@
   }
 
   /* ---- game logic ---- */
-  function jump() { var grinding = !!grind; grind = null; vy = JUMP; if (!grinding) sy = 0.01; flipUsed = false; flipT = 0; flipDone = false; buf = 0; }
+  function jump() { var grinding = !!grind; if (grind) grind.grinded = true; grind = null; vy = JUMP; if (!grinding) sy = 0.01; flipUsed = false; flipT = 0; flipDone = false; buf = 0; }
   function start() {
     state = "run"; syncBtn(); speed = reduceMotion ? 5 : 6.5; maxSpeed = reduceMotion ? 7 : 13.5;
     score = 0; obs = []; grind = null; sy = 0; vy = 0; flipT = 0; flipUsed = false; flipDone = false; buf = 0; pop = 0;
@@ -313,20 +313,24 @@
     return false;
   }
 
-  /* ---- grinding: come down on a bench or barrier from above and the trucks lock onto its top edge ---- */
+  /* ---- grinding: land on a bench or barrier and the trucks lock onto its top edge.
+     Forgiving: any airborne contact a little under the top edge (rising or falling), or a fast
+     drop that crossed it this frame, counts, and the skater eases up / down onto the rail. ---- */
   var GRIND_LIFT = 10;                              // trucks sit this far above the skater's origin
-  function updateGrind(prevSy) {
+  var GRIND_FORGIVE = 30;                           // how far under the top edge still counts as a grind
+  function updateGrind(prevSy, dt) {
     if (grind) {
-      if (sx >= grind.x + grind.w - 6) { grind.grinded = true; grind = null; } // off the end: fall back to the street
+      sy += (grind.h - GRIND_LIFT - sy) * Math.min(1, 0.5 * dt);
+      if (sx >= grind.x + grind.w + 4) { grind.grinded = true; grind = null; } // off the end: fall back to the street
       return;
     }
-    if (vy >= 0) return;
     for (var i = 0; i < obs.length; i++) {
       var o = obs[i];
       if (!o.t.grind || o.grinded) continue;
-      if (sx < o.x - 10 || sx > o.x + o.w - 14) continue;
-      if (prevSy < o.h - 5 || sy >= o.h - 5) continue; // only when crossing the bench top on the way down
-      grind = o; sy = o.h - GRIND_LIFT; vy = 0;
+      if (sx < o.x - 22 || sx > o.x + o.w + 14) continue; // up to where the back wheel still overlaps it
+      if (sy < o.h - GRIND_FORGIVE && prevSy < o.h - 5) continue; // too low: that's a crash
+      if (sy > o.h - 5) continue;                      // still clear above the top: keep flying
+      grind = o; vy = 0;
       if (flipDone) score += 10;
       flipT = 0; flipDone = false; flipUsed = false;
       score += 15; popTxt = "+15 grind"; pop = 40;
@@ -364,7 +368,7 @@
       obs[i].x -= speed * dt;
       if (obs[i].x + obs[i].w < -20) obs.splice(i, 1);
     }
-    updateGrind(prevSy);
+    updateGrind(prevSy, dt);
     if (hit()) die();
   }
 
