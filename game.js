@@ -86,7 +86,8 @@
   var state = "idle";                               // idle | run | dead
   var dist = 0, speed = 0, maxSpeed = 13.5, score = 0, best = 0;
   var sy = 0, vy = 0, held = false, duck = false, crouch = 0;
-  var flipT = 0, flipUsed = false, flipDone = false, buf = 0, pop = 0;
+  var flipT = 0, flipUsed = false, flipDone = false, buf = 0, pop = 0, popTxt = "";
+  var grind = null;                                 // the obstacle being grinded, if any
   var obs = [], visible = true, inside = false, deadAt = 0;
   try { best = parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { /* ignore */ }
 
@@ -137,7 +138,7 @@
     { w: 34, h: 34, draw: function () { // plain box
       body(); g.beginPath(); g.rect(1, -33, 32, 32); g.fill(); g.stroke();
     } },
-    { w: 76, h: 34, draw: function () { // bench
+    { w: 76, h: 34, grind: true, draw: function () { // bench
       body(); g.beginPath(); g.moveTo(8, 0); g.lineTo(8, -18); g.moveTo(68, 0); g.lineTo(68, -18); g.stroke();
       g.beginPath(); g.moveTo(5, -24); g.lineTo(5, -33); g.moveTo(71, -24); g.lineTo(71, -33); g.stroke();
       g.beginPath(); g.rect(0, -24, 76, 6); g.fill(); g.stroke();
@@ -176,8 +177,10 @@
     g.beginPath(); g.moveTo(-27, -17); g.lineTo(-22, -12); g.lineTo(22, -12); g.lineTo(27, -17); g.stroke();
     g.lineWidth = 2; g.beginPath(); g.moveTo(-16, -12); g.lineTo(-16, -10); g.moveTo(16, -12); g.lineTo(16, -10); g.stroke();
     g.fillStyle = bgc(); g.lineWidth = 2;
-    g.beginPath(); g.arc(-16, -5, 4.6, 0, 6.2832); g.fill(); g.stroke();
-    g.beginPath(); g.arc(16, -5, 4.6, 0, 6.2832); g.fill(); g.stroke();
+    if (!grind) { // wheels hang behind the edge while grinding
+      g.beginPath(); g.arc(-16, -5, 4.6, 0, 6.2832); g.fill(); g.stroke();
+      g.beginPath(); g.arc(16, -5, 4.6, 0, 6.2832); g.fill(); g.stroke();
+    }
     g.restore();
   }
 
@@ -195,6 +198,17 @@
     g.beginPath(); g.arc(hd[0], hd[1], 6, 0, 6.2832); g.fill();
   }
 
+  function drawSparks() { // flicker behind the rear truck, in skater space
+    g.strokeStyle = col(0.9); g.lineWidth = 1.8; g.lineCap = "round";
+    g.beginPath();
+    var k = Math.floor(dist / 4) % 3;
+    for (var i = 0; i < 3; i++) {
+      var len = 7 + ((i + k) % 3) * 4, rise = 3 + ((i * 2 + k) % 3) * 3;
+      g.moveTo(-20, -9 - i * 0.5); g.lineTo(-20 - len, -9 - rise);
+    }
+    g.stroke();
+  }
+
   function drawSkater() {
     g.save();
     g.translate(sx, gy - sy);
@@ -203,6 +217,7 @@
     drawBoard(flipT);
     if (dead) { g.translate(-5, -2); g.rotate(-0.22); }
     drawRider(dead ? 1 : crouch);
+    if (grind) drawSparks();
     g.restore();
   }
 
@@ -222,7 +237,7 @@
     }
     if (pop > 0) {
       g.font = "600 12px Inter, system-ui, sans-serif"; g.textAlign = "left"; g.fillStyle = col(Math.min(1, pop / 20) * 0.9);
-      g.fillText("+10 kickflip", sx + 34, gy - 92 - (40 - pop) * 0.5);
+      g.fillText(popTxt, sx + 34, gy - 92 - (40 - pop) * 0.5);
     }
   }
 
@@ -244,10 +259,10 @@
   }
 
   /* ---- game logic ---- */
-  function jump() { vy = JUMP; sy = 0.01; flipUsed = false; flipT = 0; flipDone = false; buf = 0; }
+  function jump() { var grinding = !!grind; grind = null; vy = JUMP; if (!grinding) sy = 0.01; flipUsed = false; flipT = 0; flipDone = false; buf = 0; }
   function start() {
     state = "run"; syncBtn(); speed = reduceMotion ? 5 : 6.5; maxSpeed = reduceMotion ? 7 : 13.5;
-    score = 0; obs = []; sy = 0; vy = 0; flipT = 0; flipUsed = false; flipDone = false; buf = 0; pop = 0;
+    score = 0; obs = []; grind = null; sy = 0; vy = 0; flipT = 0; flipUsed = false; flipDone = false; buf = 0; pop = 0;
     live.textContent = "Go";
     setHint(finePointer ? "Space / ↑ jump · hold for height · again in the air = kickflip · ↓ drop" : "Tap to jump · tap in the air for a kickflip");
   }
@@ -264,7 +279,7 @@
     held = true;
     if (state === "idle") { start(); jump(); }
     else if (state === "dead") { if (performance.now() - deadAt > 400) { start(); jump(); } }
-    else if (sy <= 0.5) jump();
+    else if (sy <= 0.5 || grind) jump(); // off the ground, or ollie off the bench
     else if (sy > 22 && !flipUsed && !reduceMotion) { flipUsed = true; flipT = 0.0001; }
     else buf = 7; // pressed a hair before landing: jump as soon as we touch down
     lp.wake();
@@ -289,9 +304,31 @@
     var l = sx - 17, r = sx + 17;
     for (var i = 0; i < obs.length; i++) {
       var o = obs[i];
+      if (o === grind || o.grinded) continue;
       if (o.x + 3 < r && o.x + o.w - 3 > l && sy < o.h - 5) return true;
     }
     return false;
+  }
+
+  /* ---- grinding: come down on a bench from above and the trucks lock onto its top edge ---- */
+  var GRIND_LIFT = 10;                              // trucks sit this far above the skater's origin
+  function updateGrind(prevSy) {
+    if (grind) {
+      if (sx >= grind.x + grind.w - 6) { grind.grinded = true; grind = null; } // off the end: fall back to the street
+      return;
+    }
+    if (vy >= 0) return;
+    for (var i = 0; i < obs.length; i++) {
+      var o = obs[i];
+      if (!o.t.grind || o.grinded) continue;
+      if (sx < o.x - 10 || sx > o.x + o.w - 14) continue;
+      if (prevSy < o.h - 5 || sy >= o.h - 5) continue; // only when crossing the bench top on the way down
+      grind = o; sy = o.h - GRIND_LIFT; vy = 0;
+      if (flipDone) score += 10;
+      flipT = 0; flipDone = false; flipUsed = false;
+      score += 15; popTxt = "+15 grind"; pop = 40;
+      return;
+    }
   }
 
   function update(dt) {
@@ -304,13 +341,14 @@
     dist += speed * dt;
     score += speed * dt * 0.025;
 
-    if (sy > 0) {
+    var prevSy = sy;
+    if (sy > 0 && !grind) {
       vy -= GRAV * (duck ? FALL : 1) * dt;
       sy += vy * dt;
       if (flipT > 0) { flipT += dt / 30; if (flipT >= 1) { flipT = 0; flipDone = true; } }
       if (sy <= 0) { // touchdown
         sy = 0; vy = 0;
-        if (flipDone) { score += 10; pop = 40; }
+        if (flipDone) { score += 10; popTxt = "+10 kickflip"; pop = 40; }
         flipT = 0; flipDone = false; flipUsed = false;
         if (buf > 0) jump();
       }
@@ -323,6 +361,7 @@
       obs[i].x -= speed * dt;
       if (obs[i].x + obs[i].w < -20) obs.splice(i, 1);
     }
+    updateGrind(prevSy);
     if (hit()) die();
   }
 

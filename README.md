@@ -11,6 +11,8 @@ Pure line art drawn on a canvas in the page colours, so it follows light / dark 
 | Jump (hold for a higher one) | `Space` / `↑` / `W` | tap |
 | Kickflip (+10) | press again in the air | tap in the air |
 | Drop faster | `↓` / `S` | — |
+| Grind a bench (+15) | land on top of it from a jump | same |
+| Ollie off the bench | jump while grinding | tap |
 
 The best score is kept in `localStorage`.
 
